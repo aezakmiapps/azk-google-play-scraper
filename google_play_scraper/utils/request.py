@@ -2,7 +2,7 @@ import ssl
 import time
 from typing import Union
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener, urlopen
 
 from google_play_scraper.exceptions import ExtraHTTPError, NotFoundError
 
@@ -12,9 +12,17 @@ MAX_RETRIES = 3
 RATE_LIMIT_DELAY = 5
 
 
-def _urlopen(obj):
+def _urlopen(obj, proxy=None):
     try:
-        resp = urlopen(obj)
+        if proxy:
+            if isinstance(proxy, str):
+                proxies = {"http": proxy, "https": proxy}
+            else:
+                proxies = proxy
+            opener = build_opener(ProxyHandler(proxies))
+            resp = opener.open(obj)
+        else:
+            resp = urlopen(obj)
     except HTTPError as e:
         if e.code == 404:
             raise NotFoundError("App not found(404).")
@@ -44,5 +52,5 @@ def post(url: str, data: Union[str, bytes], headers: dict) -> str:
     raise last_exception
 
 
-def get(url: str) -> str:
-    return _urlopen(url)
+def get(url: str, proxy : str| None = None) -> str:
+    return _urlopen(url, proxy)
